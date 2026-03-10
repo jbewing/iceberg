@@ -73,6 +73,7 @@ import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.RowDelta;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Snapshot;
+import org.apache.iceberg.SnapshotChanges;
 import org.apache.iceberg.SnapshotSummary;
 import org.apache.iceberg.SortOrder;
 import org.apache.iceberg.StructLike;
@@ -2153,7 +2154,7 @@ public class TestRewriteDataFilesAction extends TestBase {
     RewriteDataFilesSparkAction action = SparkActions.get(spark).rewriteDataFiles(table);
 
     // The constructor should have set the configuration to false
-    SparkReadConf readConf = new SparkReadConf(action.spark(), table, Collections.emptyMap());
+    SparkReadConf readConf = new SparkReadConf(action.spark(), table);
     assertThat(readConf.cacheDeleteFilesOnExecutors())
         .as("Executor cache for delete files should be disabled in RewriteDataFilesSparkAction")
         .isFalse();
@@ -2315,7 +2316,8 @@ public class TestRewriteDataFilesAction extends TestBase {
 
     Snapshot snapshot = table.currentSnapshot();
     Map<StructLike, List<DataFile>> filesByPartition =
-        Streams.stream(snapshot.addedDataFiles(table.io()))
+        Streams.stream(
+                SnapshotChanges.builderFor(table).snapshot(snapshot).build().addedDataFiles())
             .collect(Collectors.groupingBy(DataFile::partition));
 
     Stream<Pair<Pair<T, T>, Pair<T, T>>> overlaps =
