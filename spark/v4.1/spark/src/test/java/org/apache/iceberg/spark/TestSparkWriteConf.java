@@ -615,13 +615,19 @@ public class TestSparkWriteConf extends TestBaseWithCatalog {
 
     SparkWriteConf writeConf =
         new SparkWriteConf(
-            spark, table, ImmutableMap.of(SparkWriteOptions.OUTPUT_SORT_ORDER_ID, "1"));
+            spark,
+            table,
+            new CaseInsensitiveStringMap(
+                ImmutableMap.of(SparkWriteOptions.OUTPUT_SORT_ORDER_ID, "1")));
 
     assertThat(writeConf.outputSortOrder()).isEqualTo(table.sortOrder());
 
     SparkWriteConf writeConfForUnknownSortOrder =
         new SparkWriteConf(
-            spark, table, ImmutableMap.of(SparkWriteOptions.OUTPUT_SORT_ORDER_ID, "999"));
+            spark,
+            table,
+            new CaseInsensitiveStringMap(
+                ImmutableMap.of(SparkWriteOptions.OUTPUT_SORT_ORDER_ID, "999")));
 
     assertThatIllegalArgumentException()
         .isThrownBy(writeConfForUnknownSortOrder::outputSortOrder)

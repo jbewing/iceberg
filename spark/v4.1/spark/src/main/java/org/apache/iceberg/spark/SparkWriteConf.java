@@ -289,26 +289,19 @@ public class SparkWriteConf {
   public SparkWriteRequirements writeRequirements() {
     if (ignoreTableDistributionAndOrdering()) {
       LOG.info("Skipping distribution/ordering: disabled per job configuration");
+      SortOrder outputSortOrder = outputSortOrder();
+      if (outputSortOrder.isSorted()) {
+        LOG.info(
+            "Found explicit sort order {} set in job configuration."
+                + " Going to apply that to the sort-order-id of the rewritten files",
+            Spark3Util.describe(outputSortOrder));
+        return SparkWriteRequirements.EMPTY.withTableSortOrder(outputSortOrder);
+      }
       return SparkWriteRequirements.EMPTY;
     }
 
     return SparkWriteUtil.writeRequirements(
         table, distributionMode(), fanoutWriterEnabled(), dataAdvisoryPartitionSize());
-  }
-
-  public SparkWriteRequirements rewriteFilesWriteRequirements() {
-    Preconditions.checkNotNull(
-        rewrittenFileSetId(), "Can only use rewrite files write requirements during rewrite job!");
-
-    SortOrder outputSortOrder = outputSortOrder();
-    if (outputSortOrder.isSorted()) {
-      LOG.info(
-          "Found explicit sort order {} set in job configuration. Going to apply that to the sort-order-id of the rewritten files",
-          Spark3Util.describe(outputSortOrder));
-      return writeRequirements().withTableSortOrder(outputSortOrder);
-    }
-
-    return writeRequirements();
   }
 
   @VisibleForTesting
