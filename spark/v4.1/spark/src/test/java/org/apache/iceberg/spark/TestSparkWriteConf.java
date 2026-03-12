@@ -620,7 +620,8 @@ public class TestSparkWriteConf extends TestBaseWithCatalog {
             new CaseInsensitiveStringMap(
                 ImmutableMap.of(SparkWriteOptions.OUTPUT_SORT_ORDER_ID, "1")));
 
-    assertThat(writeConf.outputSortOrder()).isEqualTo(table.sortOrder());
+    assertThat(writeConf.outputSortOrderId(SparkWriteRequirements.EMPTY))
+        .isEqualTo(table.sortOrder().orderId());
 
     SparkWriteConf writeConfForUnknownSortOrder =
         new SparkWriteConf(
@@ -630,8 +631,16 @@ public class TestSparkWriteConf extends TestBaseWithCatalog {
                 ImmutableMap.of(SparkWriteOptions.OUTPUT_SORT_ORDER_ID, "999")));
 
     assertThatIllegalArgumentException()
-        .isThrownBy(writeConfForUnknownSortOrder::outputSortOrder)
+        .isThrownBy(
+            () -> writeConfForUnknownSortOrder.outputSortOrderId(SparkWriteRequirements.EMPTY))
         .withMessage("Output sort order id 999 is not a valid sort order id for table");
+
+    SparkWriteConf writeConfNoOption = new SparkWriteConf(spark, table);
+
+    assertThat(writeConfNoOption.outputSortOrderId(writeConfNoOption.writeRequirements()))
+        .isEqualTo(table.sortOrder().orderId());
+
+    assertThat(writeConfNoOption.outputSortOrderId(SparkWriteRequirements.EMPTY)).isEqualTo(0);
   }
 
   private void testWriteProperties(List<Map<String, String>> propertiesSuite) {

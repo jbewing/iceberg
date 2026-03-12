@@ -167,20 +167,27 @@ public class SparkWriteConf {
     return outputSpecId;
   }
 
-  public SortOrder outputSortOrder() {
-    int outputSortOrderId =
+  public int outputSortOrderId(SparkWriteRequirements writeRequirements) {
+    String explicitId =
         confParser
-            .intConf()
+            .stringConf()
             .option(SparkWriteOptions.OUTPUT_SORT_ORDER_ID)
-            .defaultValue(SortOrder.unsorted().orderId())
-            .parse();
+            .parseOptional();
 
-    Preconditions.checkArgument(
-        table.sortOrders().containsKey(outputSortOrderId),
-        "Output sort order id %s is not a valid sort order id for table",
-        outputSortOrderId);
+    if (explicitId != null) {
+      int id = Integer.parseInt(explicitId);
+      Preconditions.checkArgument(
+          table.sortOrders().containsKey(id),
+          "Output sort order id %s is not a valid sort order id for table",
+          id);
+      return id;
+    }
 
-    return table.sortOrders().get(outputSortOrderId);
+    if (writeRequirements.hasOrdering()) {
+      return table.sortOrder().orderId();
+    }
+
+    return SortOrder.unsorted().orderId();
   }
 
   public FileFormat dataFileFormat() {
@@ -289,14 +296,6 @@ public class SparkWriteConf {
   public SparkWriteRequirements writeRequirements() {
     if (ignoreTableDistributionAndOrdering()) {
       LOG.info("Skipping distribution/ordering: disabled per job configuration");
-      SortOrder outputSortOrder = outputSortOrder();
-      if (outputSortOrder.isSorted()) {
-        LOG.info(
-            "Found explicit sort order {} set in job configuration."
-                + " Going to apply that to the sort-order-id of the rewritten files",
-            Spark3Util.describe(outputSortOrder));
-        return SparkWriteRequirements.EMPTY.withTableSortOrder(outputSortOrder);
-      }
       return SparkWriteRequirements.EMPTY;
     }
 
