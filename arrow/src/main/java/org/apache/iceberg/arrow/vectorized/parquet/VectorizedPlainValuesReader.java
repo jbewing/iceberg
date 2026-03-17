@@ -19,6 +19,7 @@
 package org.apache.iceberg.arrow.vectorized.parquet;
 
 import java.nio.ByteBuffer;
+import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.iceberg.parquet.ValuesAsBytesReader;
 import org.apache.parquet.io.api.Binary;
@@ -53,6 +54,14 @@ class VectorizedPlainValuesReader extends ValuesAsBytesReader implements Vectori
   private void readValues(int total, FieldVector vec, int rowId, int typeWidth) {
     ByteBuffer buffer = getBuffer(total * typeWidth);
     vec.getDataBuffer().setBytes((long) rowId * typeWidth, buffer);
+  }
+
+  @Override
+  public void readBooleans(int total, FieldVector vec, int rowId) {
+    BitVector bitVector = (BitVector) vec;
+    for (int i = 0; i < total; i++) {
+      bitVector.setSafe(rowId + i, readBooleanAsInt());
+    }
   }
 
   @Override

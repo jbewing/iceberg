@@ -630,6 +630,29 @@ public final class VectorizedParquetDefinitionLevelReader
 
   class BooleanReader extends BaseReader {
     @Override
+    protected void nextRleBatch(
+        FieldVector vector,
+        int typeWidth,
+        NullabilityHolder nullabilityHolder,
+        VectorizedValuesReader valuesReader,
+        int idx,
+        int numValues,
+        byte[] byteArray) {
+      ArrowBuf validityBuffer = vector.getValidityBuffer();
+      if (currentValue == maxDefLevel) {
+        valuesReader.readBooleans(numValues, vector, idx);
+        nullabilityHolder.setNotNulls(idx, numValues);
+        if (setArrowValidityVector) {
+          for (int i = 0; i < numValues; i++) {
+            BitVectorHelper.setBit(validityBuffer, idx + i);
+          }
+        }
+      } else {
+        setNulls(nullabilityHolder, idx, numValues, validityBuffer);
+      }
+    }
+
+    @Override
     protected void nextVal(
         FieldVector vector,
         int idx,

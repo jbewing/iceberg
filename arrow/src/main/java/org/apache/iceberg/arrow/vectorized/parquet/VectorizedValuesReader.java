@@ -80,6 +80,11 @@ interface VectorizedValuesReader {
     throw new UnsupportedOperationException("readBinary is not supported");
   }
 
+  /** Read `total` booleans into `vec` starting at `vec[rowId]` */
+  default void readBooleans(int total, FieldVector vec, int rowId) {
+    throw new UnsupportedOperationException("readBooleans is not supported");
+  }
+
   /** Read `total` integers into `vec` starting at `vec[rowId]` */
   default void readIntegers(int total, FieldVector vec, int rowId) {
     throw new UnsupportedOperationException("readIntegers is not supported");
