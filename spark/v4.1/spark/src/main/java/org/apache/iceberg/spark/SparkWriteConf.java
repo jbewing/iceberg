@@ -86,7 +86,6 @@ public class SparkWriteConf {
 
   private final SparkSession spark;
   private final Table table;
-  private final String branch;
   private final RuntimeConfig sessionConf;
   private final CaseInsensitiveStringMap options;
   private final SparkConfParser confParser;
@@ -99,11 +98,15 @@ public class SparkWriteConf {
     this(spark, table, null, options);
   }
 
+  /**
+   * @deprecated since 1.11.0, will be removed in 1.12.0. Use {@link #SparkWriteConf(SparkSession,
+   *     Table, CaseInsensitiveStringMap)} instead.
+   */
+  @Deprecated
   public SparkWriteConf(
       SparkSession spark, Table table, String branch, CaseInsensitiveStringMap options) {
     this.spark = spark;
     this.table = table;
-    this.branch = branch;
     this.sessionConf = spark.conf();
     this.options = options;
     this.confParser = new SparkConfParser(spark, table, options);
@@ -461,10 +464,6 @@ public class SparkWriteConf {
         .sessionConf(SQLConf.CASE_SENSITIVE().key())
         .defaultValue(SQLConf.CASE_SENSITIVE().defaultValueString())
         .parse();
-  }
-
-  public String branch() {
-    return SparkTableUtil.determineWriteBranch(spark, table, branch, options);
   }
 
   public Map<String, String> writeProperties() {
