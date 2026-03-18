@@ -60,6 +60,7 @@ public class SerializableTable implements Table, HasTableOperations, Serializabl
   private final int defaultSpecId;
   private final Map<Integer, String> specAsJsonMap;
   private final String sortOrderAsJson;
+  private final Map<Integer, String> sortOrderAsJsonMap;
   private final FileIO io;
   private final EncryptionManager encryption;
   private final Map<String, SnapshotRef> refs;
@@ -71,6 +72,7 @@ public class SerializableTable implements Table, HasTableOperations, Serializabl
   private transient volatile Schema lazySchema = null;
   private transient volatile Map<Integer, PartitionSpec> lazySpecs = null;
   private transient volatile SortOrder lazySortOrder = null;
+  private transient volatile Map<Integer, SortOrder> lazySortOrders = null;
 
   protected SerializableTable(Table table) {
     this.name = table.name();
@@ -83,6 +85,9 @@ public class SerializableTable implements Table, HasTableOperations, Serializabl
     Map<Integer, PartitionSpec> specs = table.specs();
     specs.forEach((specId, spec) -> specAsJsonMap.put(specId, PartitionSpecParser.toJson(spec)));
     this.sortOrderAsJson = SortOrderParser.toJson(table.sortOrder());
+    this.sortOrderAsJsonMap = Maps.newHashMap();
+    Map<Integer, SortOrder> sortOrders = table.sortOrders();
+    sortOrders.forEach((id, order) -> sortOrderAsJsonMap.put(id, SortOrderParser.toJson(order)));
     this.io = fileIO(table);
     this.encryption = table.encryption();
     this.locationProviderTry = Try.of(table::locationProvider);
@@ -251,7 +256,21 @@ public class SerializableTable implements Table, HasTableOperations, Serializabl
 
   @Override
   public Map<Integer, SortOrder> sortOrders() {
-    return lazyTable().sortOrders();
+    if (lazySortOrders == null) {
+      synchronized (this) {
+        if (lazySortOrders == null && lazyTable == null) {
+          Map<Integer, SortOrder> sortOrders =
+              Maps.newHashMapWithExpectedSize(sortOrderAsJsonMap.size());
+          sortOrderAsJsonMap.forEach(
+              (id, json) -> sortOrders.put(id, SortOrderParser.fromJson(schema(), json)));
+          this.lazySortOrders = sortOrders;
+        } else if (lazySortOrders == null) {
+          this.lazySortOrders = lazyTable.sortOrders();
+        }
+      }
+    }
+
+    return lazySortOrders;
   }
 
   @Override
