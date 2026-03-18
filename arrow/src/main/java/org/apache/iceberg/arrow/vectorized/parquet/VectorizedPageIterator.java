@@ -115,7 +115,7 @@ public class VectorizedPageIterator extends BasePageIterator {
         case RLE:
           if (desc.getPrimitiveType().getPrimitiveTypeName()
               == PrimitiveType.PrimitiveTypeName.BOOLEAN) {
-            valuesReader = new VectorizedRleBooleanValuesReader(setArrowValidityVector);
+            valuesReader = new VectorizedRleBooleanValuesReader();
             break;
           }
           // fall through

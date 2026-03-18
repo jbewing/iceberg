@@ -19,14 +19,18 @@
 package org.apache.iceberg.arrow.vectorized.parquet;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import org.apache.arrow.vector.BitVector;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.parquet.bytes.ByteBufferInputStream;
 import org.apache.parquet.bytes.BytesUtils;
 import org.apache.parquet.column.values.ValuesReader;
+import org.apache.parquet.column.values.bitpacking.BytePacker;
+import org.apache.parquet.column.values.bitpacking.Packer;
+import org.apache.parquet.io.ParquetDecodingException;
 
 /**
- * A {@link VectorizedValuesReader} implementation for the encoding type Run Length Encoding / RLE.
+ * A {@link VectorizedValuesReader} for RLE-encoded boolean data pages.
  *
  * @see <a
  *     href="https://parquet.apache.org/docs/file-format/data-pages/encodings/#run-length-encoding--bit-packing-hybrid-rle--3">
@@ -35,46 +39,97 @@ import org.apache.parquet.column.values.ValuesReader;
 public class VectorizedRleBooleanValuesReader extends ValuesReader
     implements VectorizedValuesReader {
 
-  // Since we can only read booleans, bit-width is always 1
-  private static final int BOOLEAN_BIT_WIDTH = 1;
-  // Since this can only be used in the context of a data page, the definition level can be set to
-  // anything, and it doesn't really matter
-  private static final int IRRELEVANT_MAX_DEFINITION_LEVEL = 1;
-  // This class reads the length prefix itself in initFromPage, so the delegate must not read it
-  private static final boolean DONT_READ_LENGTH = false;
-
-  private final BaseVectorizedParquetValuesReader delegate;
-
-  public VectorizedRleBooleanValuesReader(boolean setArrowValidityVector) {
-    this.delegate =
-        new BaseVectorizedParquetValuesReader(
-            BOOLEAN_BIT_WIDTH,
-            IRRELEVANT_MAX_DEFINITION_LEVEL,
-            DONT_READ_LENGTH,
-            setArrowValidityVector);
+  private enum Mode {
+    RLE,
+    PACKED
   }
+
+  private static final int BIT_WIDTH = 1;
+  private static final BytePacker PACKER = Packer.LITTLE_ENDIAN.newBytePacker(BIT_WIDTH);
+
+  private ByteBufferInputStream inputStream;
+  private Mode mode;
+  private int currentCount;
+  private int currentValue;
+  private int[] packedValuesBuffer = new int[16];
+  private int packedValuesBufferIdx = 0;
 
   @Override
   public void initFromPage(int valueCount, ByteBufferInputStream in) throws IOException {
-    // For boolean data pages (v1 and v2), the RLE-encoded data is prefixed with a 4-byte
-    // little-endian length. We read and strip this prefix here before delegating to the
-    // base RLE decoder. See https://parquet.apache.org/docs/file-format/data-pages/encodings/#RLE
     int length = BytesUtils.readIntLittleEndian(in);
-    ByteBufferInputStream slicedStream = in.sliceStream(length);
-    delegate.initFromPage(valueCount, slicedStream);
+    this.inputStream = in.sliceStream(length);
+    this.currentCount = 0;
   }
 
   @Override
   public boolean readBoolean() {
-    return delegate.readBoolean();
+    return nextValue() != 0;
   }
 
   @Override
   public void readBooleans(int total, FieldVector vec, int rowId) {
     BitVector bitVector = (BitVector) vec;
     for (int i = 0; i < total; i++) {
-      bitVector.setSafe(rowId + i, delegate.readBoolean() ? 1 : 0);
+      bitVector.setSafe(rowId + i, readBoolean() ? 1 : 0);
     }
+  }
+
+  private int nextValue() {
+    if (currentCount == 0) {
+      readNextGroup();
+    }
+
+    currentCount--;
+    switch (mode) {
+      case RLE:
+        return currentValue;
+      case PACKED:
+        return packedValuesBuffer[packedValuesBufferIdx++];
+    }
+    throw new RuntimeException("Unrecognized mode: " + mode);
+  }
+
+  private void readNextGroup() {
+    try {
+      int header = readUnsignedVarInt();
+      this.mode = (header & 1) == 0 ? Mode.RLE : Mode.PACKED;
+      switch (mode) {
+        case RLE:
+          this.currentCount = header >>> 1;
+          this.currentValue = inputStream.read();
+          return;
+        case PACKED:
+          int numGroups = header >>> 1;
+          this.currentCount = numGroups * 8;
+          if (this.packedValuesBuffer.length < this.currentCount) {
+            this.packedValuesBuffer = new int[this.currentCount];
+          }
+          packedValuesBufferIdx = 0;
+          int valueIndex = 0;
+          while (valueIndex < this.currentCount) {
+            ByteBuffer buffer = inputStream.slice(BIT_WIDTH);
+            PACKER.unpack8Values(buffer, buffer.position(), this.packedValuesBuffer, valueIndex);
+            valueIndex += 8;
+          }
+          return;
+        default:
+          throw new ParquetDecodingException("not a valid mode " + this.mode);
+      }
+    } catch (IOException e) {
+      throw new ParquetDecodingException("Failed to read from input stream", e);
+    }
+  }
+
+  private int readUnsignedVarInt() throws IOException {
+    int value = 0;
+    int shift = 0;
+    int byteRead;
+    do {
+      byteRead = inputStream.read();
+      value |= (byteRead & 0x7F) << shift;
+      shift += 7;
+    } while ((byteRead & 0x80) != 0);
+    return value;
   }
 
   @Override
