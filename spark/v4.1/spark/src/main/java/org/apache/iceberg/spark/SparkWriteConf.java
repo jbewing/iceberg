@@ -169,10 +169,7 @@ public class SparkWriteConf {
 
   public int outputSortOrderId(SparkWriteRequirements writeRequirements) {
     String explicitId =
-        confParser
-            .stringConf()
-            .option(SparkWriteOptions.OUTPUT_SORT_ORDER_ID)
-            .parseOptional();
+        confParser.stringConf().option(SparkWriteOptions.OUTPUT_SORT_ORDER_ID).parseOptional();
 
     if (explicitId != null) {
       int id = Integer.parseInt(explicitId);
