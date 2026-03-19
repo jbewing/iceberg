@@ -300,19 +300,10 @@ public class TestParquetVectorizedReads extends AvroDataTestBase {
 
   @Test
   public void testSupportedReadsForParquetV2() throws Exception {
-    // Parquet V2 uses PLAIN for float/double, DELTA_BINARY_PACKED for int/long,
-    // DELTA_LENGTH_BYTE_ARRAY for string/binary, RLE for boolean, and dictionary
-    // encoding for decimals that use fixed length binary (i.e. decimals > 8 bytes).
-    Schema schema =
-        new Schema(
-            optional(102, "float_data", Types.FloatType.get()),
-            optional(103, "double_data", Types.DoubleType.get()),
-            optional(104, "decimal_data", Types.DecimalType.of(25, 5)),
-            optional(105, "int_data", Types.IntegerType.get()),
-            optional(106, "long_data", Types.LongType.get()),
-            optional(107, "string_data", Types.StringType.get()),
-            optional(108, "binary_data", Types.BinaryType.get()),
-            optional(109, "boolean_data", Types.BooleanType.get()));
+    // All SUPPORTED_PRIMITIVES are covered by v2 encoding support: PLAIN for float/double,
+    // DELTA_BINARY_PACKED for int/long, DELTA_LENGTH_BYTE_ARRAY for string/binary,
+    // DELTA_BYTE_ARRAY for fixed/uuid, RLE for boolean, and dictionary encoding for decimals.
+    Schema schema = new Schema(SUPPORTED_PRIMITIVES.fields());
 
     OutputFile outputFile = new InMemoryOutputFile();
     Iterable<GenericData.Record> data =
