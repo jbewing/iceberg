@@ -120,7 +120,7 @@ abstract class SparkShufflingFileRewriteRunner extends SparkDataFileRewriteRunne
     org.apache.iceberg.SortOrder sortOrderInJobSpec = sortOrder();
 
     org.apache.iceberg.SortOrder maybeMatchingTableSortOrder =
-        SortOrderUtil.maybeFindTableSortOrder(table(), sortOrder());
+        SortOrderUtil.findTableSortOrder(table(), sortOrder());
 
     if (sortOrderInJobSpec.isSorted() && maybeMatchingTableSortOrder.isUnsorted()) {
       LOG.warn(

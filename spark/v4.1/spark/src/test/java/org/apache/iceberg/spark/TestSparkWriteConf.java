@@ -622,6 +622,13 @@ public class TestSparkWriteConf extends TestBaseWithCatalog {
 
     assertThat(writeConf.outputSortOrderId(SparkWriteRequirements.EMPTY))
         .isEqualTo(table.sortOrder().orderId());
+  }
+
+  @TestTemplate
+  public void testSortOrderWriteConfWithInvalidId() {
+    Table table = validationCatalog.loadTable(tableIdent);
+
+    table.replaceSortOrder().asc("id").commit();
 
     SparkWriteConf writeConfForUnknownSortOrder =
         new SparkWriteConf(
@@ -633,7 +640,15 @@ public class TestSparkWriteConf extends TestBaseWithCatalog {
     assertThatIllegalArgumentException()
         .isThrownBy(
             () -> writeConfForUnknownSortOrder.outputSortOrderId(SparkWriteRequirements.EMPTY))
-        .withMessage("Output sort order id 999 is not a valid sort order id for table");
+        .withMessage(
+            "Cannot use output sort order id 999 because the table does not contain a sort order with that id");
+  }
+
+  @TestTemplate
+  public void testSortOrderWriteConfWithNoOption() {
+    Table table = validationCatalog.loadTable(tableIdent);
+
+    table.replaceSortOrder().asc("id").commit();
 
     SparkWriteConf writeConfNoOption = new SparkWriteConf(spark, table);
 

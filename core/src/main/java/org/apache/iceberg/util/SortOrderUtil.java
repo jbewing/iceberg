@@ -56,7 +56,7 @@ public class SortOrderUtil {
    * @return the matching {@link SortOrder} from the table (with the orderId set) or {@link
    *     SortOrder#unsorted()} if no match is found.
    */
-  public static SortOrder maybeFindTableSortOrder(Table table, SortOrder userSuppliedSortOrder) {
+  public static SortOrder findTableSortOrder(Table table, SortOrder userSuppliedSortOrder) {
     return table.sortOrders().values().stream()
         .filter(sortOrder -> sortOrder.sameOrder(userSuppliedSortOrder))
         .findFirst()

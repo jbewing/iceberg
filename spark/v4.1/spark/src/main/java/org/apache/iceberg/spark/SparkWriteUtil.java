@@ -85,12 +85,11 @@ public class SparkWriteUtil {
   private static final Expression[] PARTITION_FILE_CLUSTERING =
       clusterBy(SPEC_ID, PARTITION, FILE_PATH);
 
-  private static final SortOrder[] EMPTY_SPARK_ORDERING = new SortOrder[0];
-  private static final SortOrder[] EXISTING_ROW_SPARK_ORDERING = orderBy(FILE_PATH, ROW_POSITION);
-  private static final SortOrder[] PARTITION_SPARK_ORDERING = orderBy(SPEC_ID, PARTITION);
-  private static final SortOrder[] PARTITION_FILE_SPARK_ORDERING =
-      orderBy(SPEC_ID, PARTITION, FILE_PATH);
-  private static final SortOrder[] POSITION_DELETE_SPARK_ORDERING =
+  private static final SortOrder[] EMPTY_ORDERING = new SortOrder[0];
+  private static final SortOrder[] EXISTING_ROW_ORDERING = orderBy(FILE_PATH, ROW_POSITION);
+  private static final SortOrder[] PARTITION_ORDERING = orderBy(SPEC_ID, PARTITION);
+  private static final SortOrder[] PARTITION_FILE_ORDERING = orderBy(SPEC_ID, PARTITION, FILE_PATH);
+  private static final SortOrder[] POSITION_DELETE_ORDERING =
       orderBy(SPEC_ID, PARTITION, FILE_PATH, ROW_POSITION);
 
   private SparkWriteUtil() {}
@@ -155,7 +154,7 @@ public class SparkWriteUtil {
         if (table.spec().isPartitioned() || table.sortOrder().isSorted()) {
           return Distributions.ordered(ordering(table));
         } else {
-          return Distributions.ordered(EXISTING_ROW_SPARK_ORDERING);
+          return Distributions.ordered(EXISTING_ROW_ORDERING);
         }
 
       default:
@@ -177,7 +176,7 @@ public class SparkWriteUtil {
       return new SparkWriteRequirements(distribution, ordering, advisoryPartitionSize);
     } else {
       Distribution distribution = positionDeltaDeleteDistribution(table, mode);
-      SortOrder[] ordering = fanoutEnabled ? EMPTY_SPARK_ORDERING : POSITION_DELETE_SPARK_ORDERING;
+      SortOrder[] ordering = fanoutEnabled ? EMPTY_ORDERING : POSITION_DELETE_ORDERING;
       return new SparkWriteRequirements(distribution, ordering, advisoryPartitionSize);
     }
   }
@@ -198,9 +197,9 @@ public class SparkWriteUtil {
 
       case RANGE:
         if (table.spec().isUnpartitioned()) {
-          return Distributions.ordered(concat(PARTITION_FILE_SPARK_ORDERING, ordering(table)));
+          return Distributions.ordered(concat(PARTITION_FILE_ORDERING, ordering(table)));
         } else {
-          return Distributions.ordered(concat(PARTITION_SPARK_ORDERING, ordering(table)));
+          return Distributions.ordered(concat(PARTITION_ORDERING, ordering(table)));
         }
 
       default:
@@ -210,9 +209,9 @@ public class SparkWriteUtil {
 
   private static SortOrder[] positionDeltaUpdateMergeOrdering(Table table, boolean fanoutEnabled) {
     if (fanoutEnabled && table.sortOrder().isUnsorted()) {
-      return EMPTY_SPARK_ORDERING;
+      return EMPTY_ORDERING;
     } else {
-      return concat(POSITION_DELETE_SPARK_ORDERING, ordering(table));
+      return concat(POSITION_DELETE_ORDERING, ordering(table));
     }
   }
 
@@ -230,9 +229,9 @@ public class SparkWriteUtil {
 
       case RANGE:
         if (table.spec().isUnpartitioned()) {
-          return Distributions.ordered(PARTITION_FILE_SPARK_ORDERING);
+          return Distributions.ordered(PARTITION_FILE_ORDERING);
         } else {
-          return Distributions.ordered(PARTITION_SPARK_ORDERING);
+          return Distributions.ordered(PARTITION_ORDERING);
         }
 
       default:
@@ -246,7 +245,7 @@ public class SparkWriteUtil {
   //   so records for one partition must be co-located within a task
   private static SortOrder[] writeOrdering(Table table, boolean fanoutEnabled) {
     if (fanoutEnabled && table.sortOrder().isUnsorted()) {
-      return EMPTY_SPARK_ORDERING;
+      return EMPTY_ORDERING;
     } else {
       return ordering(table);
     }

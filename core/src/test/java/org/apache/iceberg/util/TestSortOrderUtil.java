@@ -296,7 +296,7 @@ public class TestSortOrderUtil {
 
     SortOrder tableSortOrder = table.sortOrder();
 
-    SortOrder actualOrder = SortOrderUtil.maybeFindTableSortOrder(table, tableSortOrder);
+    SortOrder actualOrder = SortOrderUtil.findTableSortOrder(table, tableSortOrder);
 
     assertThat(actualOrder).as("Should find current table sort order").isEqualTo(table.sortOrder());
   }
@@ -310,7 +310,7 @@ public class TestSortOrderUtil {
     SortOrder userSuppliedOrder =
         SortOrder.builderFor(table.schema()).asc("id", NULLS_LAST).build();
 
-    SortOrder actualOrder = SortOrderUtil.maybeFindTableSortOrder(table, userSuppliedOrder);
+    SortOrder actualOrder = SortOrderUtil.findTableSortOrder(table, userSuppliedOrder);
 
     assertThat(actualOrder).as("Should find current table sort order").isEqualTo(table.sortOrder());
   }
@@ -326,7 +326,7 @@ public class TestSortOrderUtil {
     SortOrder userSuppliedOrder =
         SortOrder.builderFor(table.schema()).asc("id", NULLS_LAST).build();
 
-    SortOrder actualOrder = SortOrderUtil.maybeFindTableSortOrder(table, userSuppliedOrder);
+    SortOrder actualOrder = SortOrderUtil.findTableSortOrder(table, userSuppliedOrder);
 
     assertThat(actualOrder)
         .as("Should find first sorted table sort order")
@@ -334,7 +334,7 @@ public class TestSortOrderUtil {
   }
 
   @Test
-  public void testReturnsEmptyForFindingNonMatchingSortOrder() {
+  public void testReturnsUnsortedForMissingSortOrder() {
     PartitionSpec spec = PartitionSpec.unpartitioned();
     SortOrder order = SortOrder.builderFor(SCHEMA).withOrderId(1).asc("id", NULLS_LAST).build();
     TestTables.TestTable table = TestTables.create(tableDir, "test", SCHEMA, spec, order, 2);
@@ -344,7 +344,7 @@ public class TestSortOrderUtil {
     SortOrder userSuppliedOrder =
         SortOrder.builderFor(table.schema()).desc("id", NULLS_LAST).build();
 
-    SortOrder actualOrder = SortOrderUtil.maybeFindTableSortOrder(table, userSuppliedOrder);
+    SortOrder actualOrder = SortOrderUtil.findTableSortOrder(table, userSuppliedOrder);
 
     assertThat(actualOrder)
         .as(

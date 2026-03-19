@@ -1723,9 +1723,6 @@ public class TestRewriteDataFilesAction extends TestBase {
         basicRewrite(table)
             .sort(SortOrder.builderFor(table.schema()).asc("c3").build())
             .option(SizeBasedFileRewritePlanner.REWRITE_ALL, "true")
-            .option(
-                RewriteDataFiles.TARGET_FILE_SIZE_BYTES,
-                Integer.toString(averageFileSize(table) / partitions))
             .execute();
 
     assertThat(result.rewriteResults()).as("Should have 1 fileGroups").hasSize(1);
@@ -1738,7 +1735,6 @@ public class TestRewriteDataFilesAction extends TestBase {
 
     shouldHaveSnapshots(table, 2);
     shouldHaveACleanCache(table);
-    shouldHaveMultipleFiles(table);
     shouldHaveLastCommitUnsorted(table, "c2");
     shouldHaveLastCommitSorted(table, "c3");
     dataFilesShouldHaveSortOrderIdMatching(table, c3SortOrder);

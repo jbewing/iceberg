@@ -180,7 +180,7 @@ public class SparkWriteConf {
       int id = Integer.parseInt(explicitId);
       Preconditions.checkArgument(
           table.sortOrders().containsKey(id),
-          "Output sort order id %s is not a valid sort order id for table",
+          "Cannot use output sort order id %s because the table does not contain a sort order with that id",
           id);
       return id;
     }
