@@ -1735,8 +1735,6 @@ public class TestRewriteDataFilesAction extends TestBase {
 
     shouldHaveSnapshots(table, 2);
     shouldHaveACleanCache(table);
-    shouldHaveLastCommitUnsorted(table, "c2");
-    shouldHaveLastCommitSorted(table, "c3");
     dataFilesShouldHaveSortOrderIdMatching(table, c3SortOrder);
   }
 

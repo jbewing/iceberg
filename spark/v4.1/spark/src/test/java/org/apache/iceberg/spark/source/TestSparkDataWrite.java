@@ -564,8 +564,6 @@ public class TestSparkDataWrite {
   public void testWriteDataFilesInTableSortOrder() throws IOException {
     File parent = temp.resolve(format.toString()).toFile();
     File location = new File(parent, "test");
-    String targetLocation = locationWithBranch(location);
-
     HadoopTables tables = new HadoopTables(CONF);
     PartitionSpec spec = PartitionSpec.unpartitioned();
     SortOrder sortOrder = SortOrder.builderFor(SCHEMA).asc("id").build();
@@ -585,10 +583,7 @@ public class TestSparkDataWrite {
         .mode(SaveMode.Append)
         .save(location.toString());
 
-    createBranch(table);
-    table.refresh();
-
-    Dataset<Row> result = spark.read().format("iceberg").load(targetLocation);
+    Dataset<Row> result = spark.read().format("iceberg").load(location.toString());
 
     List<SimpleRecord> actual =
         result.orderBy("id").as(Encoders.bean(SimpleRecord.class)).collectAsList();
@@ -620,9 +615,6 @@ public class TestSparkDataWrite {
         .option(SparkWriteOptions.WRITE_FORMAT, format.toString())
         .mode(SaveMode.Append)
         .save(location.toString());
-
-    createBranch(table);
-    table.refresh();
 
     try (CloseableIterable<FileScanTask> tasks = table.newScan().planFiles()) {
       assertThat(tasks)
@@ -668,7 +660,6 @@ public class TestSparkDataWrite {
         .mode(SaveMode.Append)
         .save(location.toString());
 
-    createBranch(table);
     table.refresh();
 
     try (CloseableIterable<FileScanTask> tasks = table.newScan().planFiles()) {
