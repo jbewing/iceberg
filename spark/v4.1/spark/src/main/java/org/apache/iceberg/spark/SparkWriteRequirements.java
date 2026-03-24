@@ -26,8 +26,10 @@ import org.apache.spark.sql.connector.expressions.SortOrder;
 /** A set of requirements such as distribution and ordering reported to Spark during writes. */
 public class SparkWriteRequirements {
 
+  private static final long NO_ADVISORY_PARTITION_SIZE = 0;
   public static final SparkWriteRequirements EMPTY =
-      new SparkWriteRequirements(Distributions.unspecified(), new SortOrder[0], 0);
+      new SparkWriteRequirements(
+          Distributions.unspecified(), new SortOrder[0], NO_ADVISORY_PARTITION_SIZE);
 
   private final Distribution distribution;
   private final SortOrder[] ordering;
@@ -39,7 +41,9 @@ public class SparkWriteRequirements {
     this.ordering = ordering;
     // Spark prohibits requesting a particular advisory partition size without distribution
     this.advisoryPartitionSize =
-        distribution instanceof UnspecifiedDistribution ? 0 : advisoryPartitionSize;
+        distribution instanceof UnspecifiedDistribution
+            ? NO_ADVISORY_PARTITION_SIZE
+            : advisoryPartitionSize;
   }
 
   public Distribution distribution() {
