@@ -83,11 +83,10 @@ public class SerializableTable implements Table, HasTableOperations, Serializabl
     Map<Integer, PartitionSpec> specs = table.specs();
     specs.forEach((specId, spec) -> specAsJsonMap.put(specId, PartitionSpecParser.toJson(spec)));
     this.sortOrderAsJson = SortOrderParser.toJson(table.sortOrder());
-    ImmutableMap.Builder<Integer, String> sortOrderMapBuilder = ImmutableMap.builder();
+    this.sortOrderAsJsonMap = Maps.newHashMap();
     table
         .sortOrders()
-        .forEach((id, order) -> sortOrderMapBuilder.put(id, SortOrderParser.toJson(order)));
-    this.sortOrderAsJsonMap = sortOrderMapBuilder.build();
+        .forEach((id, order) -> sortOrderAsJsonMap.put(id, SortOrderParser.toJson(order)));
     this.io = table.io();
     this.encryption = table.encryption();
     this.locationProviderTry = Try.of(table::locationProvider);
@@ -251,11 +250,11 @@ public class SerializableTable implements Table, HasTableOperations, Serializabl
     if (lazySortOrders == null) {
       synchronized (this) {
         if (lazySortOrders == null && lazyTable == null) {
-          Map<Integer, SortOrder> sortOrders =
-              Maps.newHashMapWithExpectedSize(sortOrderAsJsonMap.size());
+          ImmutableMap.Builder<Integer, SortOrder> sortOrders =
+              ImmutableMap.builderWithExpectedSize(sortOrderAsJsonMap.size());
           sortOrderAsJsonMap.forEach(
               (id, json) -> sortOrders.put(id, SortOrderParser.fromJson(schema(), json)));
-          this.lazySortOrders = sortOrders;
+          this.lazySortOrders = sortOrders.build();
         } else if (lazySortOrders == null) {
           this.lazySortOrders = lazyTable.sortOrders();
         }
