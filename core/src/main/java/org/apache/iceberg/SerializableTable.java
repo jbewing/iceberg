@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.apache.iceberg.encryption.EncryptionManager;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.io.LocationProvider;
+import org.apache.iceberg.relocated.com.google.common.collect.ImmutableMap;
 import org.apache.iceberg.relocated.com.google.common.collect.Maps;
 import org.apache.iceberg.util.SerializableMap;
 
@@ -82,9 +83,11 @@ public class SerializableTable implements Table, HasTableOperations, Serializabl
     Map<Integer, PartitionSpec> specs = table.specs();
     specs.forEach((specId, spec) -> specAsJsonMap.put(specId, PartitionSpecParser.toJson(spec)));
     this.sortOrderAsJson = SortOrderParser.toJson(table.sortOrder());
-    this.sortOrderAsJsonMap = Maps.newHashMap();
-    Map<Integer, SortOrder> sortOrders = table.sortOrders();
-    sortOrders.forEach((id, order) -> sortOrderAsJsonMap.put(id, SortOrderParser.toJson(order)));
+    ImmutableMap.Builder<Integer, String> sortOrderMapBuilder = ImmutableMap.builder();
+    table
+        .sortOrders()
+        .forEach((id, order) -> sortOrderMapBuilder.put(id, SortOrderParser.toJson(order)));
+    this.sortOrderAsJsonMap = sortOrderMapBuilder.build();
     this.io = table.io();
     this.encryption = table.encryption();
     this.locationProviderTry = Try.of(table::locationProvider);

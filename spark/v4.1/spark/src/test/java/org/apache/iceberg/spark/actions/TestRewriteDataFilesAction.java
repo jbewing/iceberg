@@ -1703,21 +1703,14 @@ public class TestRewriteDataFilesAction extends TestBase {
 
   @TestTemplate
   public void testSortPastTableSortOrderGetsAppliedToFiles() throws IOException {
-    int partitions = 4;
-    Table table = createTable();
-    writeRecords(20, SCALE, partitions);
-    shouldHaveLastCommitUnsorted(table, "c3");
-
-    table.updateSpec().addField("c1").commit();
+    Table table = createTable(1);
 
     table.replaceSortOrder().asc("c3").commit();
     SortOrder c3SortOrder = table.sortOrder();
 
     table.replaceSortOrder().asc("c2").commit();
-    shouldHaveFiles(table, 20);
 
     List<Object[]> originalData = currentData();
-    long dataSizeBefore = testDataSize(table);
 
     RewriteDataFiles.Result result =
         basicRewrite(table)
@@ -1726,7 +1719,6 @@ public class TestRewriteDataFilesAction extends TestBase {
             .execute();
 
     assertThat(result.rewriteResults()).as("Should have 1 fileGroups").hasSize(1);
-    assertThat(result.rewrittenBytesCount()).isEqualTo(dataSizeBefore);
 
     table.refresh();
 

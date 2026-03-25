@@ -173,16 +173,15 @@ public class SparkWriteConf {
   }
 
   public int outputSortOrderId(SparkWriteRequirements writeRequirements) {
-    String explicitId =
-        confParser.stringConf().option(SparkWriteOptions.OUTPUT_SORT_ORDER_ID).parseOptional();
+    Integer explicitId =
+        confParser.intConf().option(SparkWriteOptions.OUTPUT_SORT_ORDER_ID).parseOptional();
 
     if (explicitId != null) {
-      int id = Integer.parseInt(explicitId);
       Preconditions.checkArgument(
-          table.sortOrders().containsKey(id),
+          table.sortOrders().containsKey(explicitId),
           "Cannot use output sort order id %s because the table does not contain a sort order with that id",
-          id);
-      return id;
+          explicitId);
+      return explicitId;
     }
 
     if (writeRequirements.hasOrdering()) {

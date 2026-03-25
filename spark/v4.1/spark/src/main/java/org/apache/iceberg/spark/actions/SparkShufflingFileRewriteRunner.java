@@ -124,7 +124,7 @@ abstract class SparkShufflingFileRewriteRunner extends SparkDataFileRewriteRunne
 
     if (sortOrderInJobSpec.isSorted() && maybeMatchingTableSortOrder.isUnsorted()) {
       LOG.warn(
-          "Sort order specified for job {} doesn't match any table sort orders, so going to not mark rewritten files as sorted in the manifest files",
+          "Sort order specified for job {} doesn't match any table sort orders, rewritten files will not be marked as sorted in the manifest files",
           Spark3Util.describe(sortOrderInJobSpec));
     }
 
